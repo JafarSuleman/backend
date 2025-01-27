@@ -12,6 +12,15 @@ mongoose.connect(process.env.MONGODB_URI)
 
 app.use(cors());
 app.use(express.json());
+
+// Add this root route handler
+app.get('/', (req, res) => {
+    res.send(`
+        <h1>Welcome to Node.js Backend</h1>
+        <p>Server is running successfully!</p>
+    `);
+});
+
 app.use('/api/auth', User)
 
 
