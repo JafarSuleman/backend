@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken');
 
 const RegisterUser = async (req, res) => {
     const {
@@ -72,4 +73,64 @@ const RegisterUser = async (req, res) => {
     }
 }
 
-module.exports = { RegisterUser };
+const LoginUser = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required"
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User does not exists"
+            });
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password"
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Create user response without password
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        res.status(200).json({
+            success: true,
+            message: "Login successful",
+            data: {
+                user: userResponse,
+                token
+            }
+        });
+
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error during login",
+            error: error.message
+        });
+    }
+};
+
+module.exports = { RegisterUser, LoginUser };
